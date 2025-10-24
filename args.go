@@ -1,17 +1,28 @@
 package args
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-sam/utils"
 )
 
 type Parser struct {
-	args []string
+	args      []string
+	validArgs map[string]bool
 }
 
 func New() *Parser {
-	return &Parser{args: os.Args[1:]}
+	return &Parser{
+		args:      os.Args[1:],
+		validArgs: make(map[string]bool),
+	}
+}
+
+func (p *Parser) registerArgs(short, long string) {
+	p.validArgs["-"+short] = true
+	p.validArgs["--"+long] = true
 }
 
 func (p *Parser) matchFlag(index int, short, long string) bool {
@@ -23,6 +34,8 @@ func (p *Parser) matchFlag(index int, short, long string) bool {
 }
 
 func (p *Parser) String(short, long string, target *string) bool {
+	p.registerArgs(short, long)
+
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			if i+1 < len(p.args) {
@@ -35,6 +48,8 @@ func (p *Parser) String(short, long string, target *string) bool {
 }
 
 func (p *Parser) Bool(short, long string, target *bool) {
+	p.registerArgs(short, long)
+
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			*target = true
@@ -44,6 +59,8 @@ func (p *Parser) Bool(short, long string, target *bool) {
 }
 
 func (p *Parser) Integer(short, long string, target *int) bool {
+	p.registerArgs(short, long)
+
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			if i+1 < len(p.args) {
@@ -58,6 +75,8 @@ func (p *Parser) Integer(short, long string, target *int) bool {
 }
 
 func (p *Parser) GetStringValue(short, long string) (string, bool) {
+	p.registerArgs(short, long)
+
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			if i+1 < len(p.args) {
@@ -69,6 +88,8 @@ func (p *Parser) GetStringValue(short, long string) (string, bool) {
 }
 
 func (p *Parser) HasFlag(short, long string) bool {
+	p.registerArgs(short, long)
+
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			return true
@@ -79,4 +100,18 @@ func (p *Parser) HasFlag(short, long string) bool {
 
 func (p *Parser) Help() bool {
 	return p.HasFlag("h", "help")
+}
+
+func (p *Parser) ValidateArgs() error {
+	for _, arg := range p.args {
+		if !strings.HasPrefix(arg, "-") {
+			continue
+		}
+
+		if !p.validArgs[arg] {
+			return fmt.Errorf("unknown argument: %s", arg)
+		}
+	}
+
+	return nil
 }
