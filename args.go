@@ -64,7 +64,9 @@ func (p *Parser) Integer(short, long string, target *int) bool {
 	for i := range p.args {
 		if p.matchFlag(i, short, long) {
 			if i+1 < len(p.args) {
-				if value, err := utils.TryParseInt(p.args[i+1]); err {
+				value, err := utils.TryParseInt(p.args[i+1])
+
+				if err == nil {
 					*target = value
 					return true
 				}
